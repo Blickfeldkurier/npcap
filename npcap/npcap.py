@@ -20,7 +20,6 @@ class PrinterListener:
         ]
         self.browser = []
         for item in zerotypes:
-            print("Added: " + item)
             self.browser.append(ServiceBrowser(self.zeroconf, item, self))
 
     def __del__(self):
@@ -45,7 +44,6 @@ def main():
     lastTime = time.time()
     while wait:
         deltaT = time.time() - lastTime
-        print(str(deltaT))
         if deltaT >= args.timeout:
             wait = False
 
