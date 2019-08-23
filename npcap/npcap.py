@@ -1,8 +1,13 @@
 #! /usr/bin/env python3
 import pprint
+import argparse
+import time
 from zeroconf import ServiceBrowser, Zeroconf
 
 class PrinterListener:
+    """
+    Gather and Store all Zeroconf packages
+    """
     def __init__(self):
         self.zeroconf = Zeroconf()
         self.packets = {}
@@ -15,6 +20,7 @@ class PrinterListener:
         ]
         self.browser = []
         for item in zerotypes:
+            print("Added: " + item)
             self.browser.append(ServiceBrowser(self.zeroconf, item, self))
 
     def __del__(self):
@@ -30,7 +36,18 @@ class PrinterListener:
         print("-----\n")
 
 def main():
+    parser = argparse.ArgumentParser(description='Get Network Printer Capabilities')
+    parser.add_argument("-t", "--timeout", type=int, default=23,help="Timout for waiting on Zeroconf packages (Default:23)")
+    args = parser.parse_args()
+
     listener = PrinterListener()
+    wait = True
+    lastTime = time.time()
+    while wait:
+        deltaT = time.time() - lastTime
+        print(str(deltaT))
+        if deltaT >= args.timeout:
+            wait = False
 
 if __name__ == "__main__":
     main()
