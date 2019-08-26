@@ -4,8 +4,37 @@ import argparse
 import time
 import ipaddress
 import socket
+from pysnmp.entity.rfc3413.oneliner import cmdgen
 from zeroconf import ServiceBrowser, Zeroconf
 
+class SNMPWrapper:
+    """
+    Get Printer Capabilites via SNMP
+    """
+    def __init__(self, comunity):
+        print_base_oid = '1.3.6.1.2.1.43'
+        self.print_name_oid = print_base_oid + "." + '5.1.1.16.1'
+        self.print_name_oid = 'iso.org.dod.internet.mgmt.mib-2.printmib.prtGeneral.prtGeneralTable.prtGeneralEntry.prtGerneralPrinterName'
+        self.print_interpreter_oid = print_base_oid + "." + '15.1'
+        self.comunity = comunity
+        self.cmdGen = cmdgen.CommandGenerator()
+    
+    def getSNMPData(self, ip):
+        port = 161
+        #errorIndication, errorStatus, errorIndex, varBinds = self.cmdGen.getCmd(
+        #    cmdgen.CommunityData(self.comunity),
+        #    cmdgen.UdpTransportTarget((ip,port)),
+        #    self.print_name_oid,
+        #    self.print_interpreter_oid
+        #)
+        #if errorIndication:
+        #    print(errorIndication)
+        #else:
+        #    if errorStatus:
+        #        print('%s at %s' % (errorStatus.prettyPrint(),errorIndex and varBinds[int(errorIndex)-1] or '?'))
+        #    else:
+        #        for name, val in varBinds:
+        #            print('%s = %s' % (name.prettyPrint(), val.prettyPrint()))
 class PrinterListener:
     """
     Gather and Store all Zeroconf packages
@@ -28,7 +57,7 @@ class PrinterListener:
         self.zeroconf.close()
 
     def remove_service(self, zeroconf, type, name):
-        pass
+        return
 
     def debugPrintMsg(self, name, info):
         print("Name: " + name)
@@ -78,7 +107,7 @@ class PrinterListener:
             else:
                 try:
                     host = socket.gethostbyaddr(item)
-                    print(str(host[0]) + "/" + item)
+                    print( item + "\t/ " + str(host[0]))
                 except socket.error:
                     print(item)
 
@@ -90,7 +119,7 @@ class PrinterListener:
         else:
             try:
                host = socket.gethostbyaddr(ip)
-               print(str(host[0]) + "/" + ip)
+               print(str( ip + "\t/ " + host[0]))
             except socket.error:
                     print(ip)
             for typeitem in self.packets[ip]:
@@ -107,7 +136,7 @@ class PrinterListener:
             else:
                 try:
                     host = socket.gethostbyaddr(ip)
-                    print(str(host[0]) + "/" + ip)
+                    print(ip + "\t/ " + str(host[0]))
                 except socket.error:
                     print(ip)
             for typeitem in items:
@@ -140,10 +169,14 @@ def main():
     parser.add_argument("-l", "--list", default=False, action='store_true', help="List Zeroconf Hosts and Exit")
     parser.add_argument("-d", "--discover", default=False, action='store_true', help="Print capabilities of All Zeroconf hosts and Exit")
     parser.add_argument("-r", "--nolookup", default=False, action='store_true', help="No reverse lookup")
+    parser.add_argument("-c", "--comunity", default='public', help="SNMP Comunity (defaut: public)")
     parser.add_argument('addresses', nargs='*', help='List of Ip addresses to look up')
     args = parser.parse_args()
 
     listener = None
+    snmphandler = None
+    if args.nosnmp == False:
+        snmphandler = SNMPWrapper(args.comunity)
     if args.nozeroconf == False:
         listener = PrinterListener()
         wait = True
@@ -172,6 +205,7 @@ def main():
             if listener:
                 host = socket.gethostbyname(item)
                 listener.printSingleHost(host, args.nolookup)
+            snmphandler.getSNMPData(item)
     else:
         if listener:
             listener.printAll(args.nolookup)
